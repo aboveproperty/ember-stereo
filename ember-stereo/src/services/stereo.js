@@ -369,12 +369,11 @@ export default class Stereo extends Service.extend(EmberEvented) {
     };
   }
 
-  @task({ restartable: true, evented: true })
-  *loadTask(urlsOrPromise, _options) {
+  loadTask = task({ restartable: true, evented: true }, async (urlsOrPromise, _options) => {
     let options = this.prepareLoadOptions(_options);
 
     debug('ember-stereo:service')(`loadTask`, urlsOrPromise, options);
-    let urlsToTry = yield this.urlCache.resolve(urlsOrPromise);
+    let urlsToTry = await this.urlCache.resolve(urlsOrPromise);
     debug('ember-stereo:service')(`given urls: ${urlsToTry.join(', ')}`);
     this.trigger('pre-load', urlsToTry);
     this.errorCache.remove(urlsToTry);
@@ -382,7 +381,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
     var sound = this.findLoadedSound(urlsToTry);
     if (sound) {
       debug('ember-stereo:service')('retreived sound from cache');
-      return yield { sound };
+      return await { sound };
     } else {
       // TODO: refactor so it's more like this
       // let strategizer = new Strategizer(urlsToTry, options)
@@ -420,7 +419,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
       for (let strategy of strategies) {
         if (strategy.canPlay) {
           // worth trying
-          let result = yield this.tryLoadingSoundTask
+          let result = await this.tryLoadingSoundTask
             .perform(strategy)
             .catch((e) => {
               strategy.error = e;
@@ -466,12 +465,11 @@ export default class Stereo extends Service.extend(EmberEvented) {
         });
       }
     }
-  }
+  });
 
-  @task
-  *handleCurrentSoundTransitionTask(sound) {
+  handleCurrentSoundTransitionTask = task(async (sound) => {
     while (true) {
-      yield waitForEvent(sound, 'audio-played');
+      await waitForEvent(sound, 'audio-played');
       debug('ember-stereo:service')('handling sound transition');
 
       let previousSound = this.currentSound;
@@ -488,7 +486,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
         this.currentSound = sound;
       }
     }
-  }
+  });
 
   /**
    * Given an array of URLS, return a sound ready for playing
@@ -529,9 +527,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
    * @param {Array|Promise} urlsOrPromise An array of urls or a promise that will resolve to an array of urls
    * @return {Sound, failures} A sound that's playing, or an error
    */
-
-  @task({ restartable: true })
-  *playTask(urlsOrPromise, options = {}) {
+  playTask = task({ restartable: true }, async (urlsOrPromise, options = {}) => {
     options = { metadata: {}, ...options };
 
     debug('ember-stereo:service')(`playTask`, urlsOrPromise, options);
@@ -547,13 +543,13 @@ export default class Stereo extends Service.extend(EmberEvented) {
 
     let loadPromise = this.loadTask.perform(urlsOrPromise, options);
     this.trigger('new-load-request', { loadPromise, urlsOrPromise, options }); //urls: Promise.resolve(resolveUrls(urlsOrPromise))
-    let { sound, failures } = yield loadPromise;
+    let { sound, failures } = await loadPromise;
 
     if (sound) {
       this._registerEvents(sound);
       this._attemptToPlaySound(sound, options);
 
-      yield race([
+      await race([
         waitForProperty(sound, 'isPlaying'),
         waitForProperty(sound, 'isErrored'),
       ]);
@@ -576,7 +572,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
     } else {
       return this._handleLoadError({ failures, options });
     }
-  }
+  });
 
   _shouldSilenceErrors(options) {
     if (Object.keys(options || {}).includes('silenceErrors')) {
@@ -687,10 +683,9 @@ export default class Stereo extends Service.extend(EmberEvented) {
     this.currentSound.rewind(duration);
   }
 
-  @task({ maxConcurrency: 5 })
-  *resolveIdentifierTask(identifier) {
-    return yield this.urlCache.resolve(identifier);
-  }
+  resolveIdentifierTask = task({ maxConcurrency: 5 }, async (identifier) => {
+    return await this.urlCache.resolve(identifier);
+  });
 
   /* ------------------------ PRIVATE(ISH) STUFF ------------------------------ */
   /* -------------------------------------------------------------------------- */
@@ -959,15 +954,14 @@ export default class Stereo extends Service.extend(EmberEvented) {
    * @async
    * @return {Object} { sound }
    **/
-  @task
-  *waitForSuccessTask(strategy, sound) {
-    yield waitForProperty(sound, 'isReady');
+  waitForSuccessTask = task(async (strategy, sound) => {
+    await waitForProperty(sound, 'isReady');
     debug('ember-stereo:service')(
       `SUCCESS: [${strategy.connectionName}] -> (${strategy.url})`
     );
     strategy.success = true;
     return { sound };
-  }
+  });
 
   /**
    * Wait for sound to succeed
@@ -979,9 +973,8 @@ export default class Stereo extends Service.extend(EmberEvented) {
    * @async
    * @return {Object} { error }
    **/
-  @task
-  *waitForFailureTask(strategy, sound) {
-    yield waitForProperty(sound, 'isErrored');
+  waitForFailureTask = task(async (strategy, sound) => {
+    await waitForProperty(sound, 'isErrored');
     debug('ember-stereo:service')(
       `FAILED: [${strategy.connectionName}] -> ${sound.error} (${strategy.url})`
     );
@@ -990,7 +983,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
     let result = { error: sound.error, erroredSound: sound };
 
     return result;
-  }
+  });
 
   /**
    * Try loading sound
@@ -1000,8 +993,7 @@ export default class Stereo extends Service.extend(EmberEvented) {
    * @param {Object} strategy a connection strategy object
    * @return {Object} { sound } or { error }
    **/
-  @task
-  *tryLoadingSoundTask(strategy) {
+  tryLoadingSoundTask = task(async (strategy) => {
     var newSound = strategy.createSound();
     this._registerEvents(newSound);
 
@@ -1009,11 +1001,11 @@ export default class Stereo extends Service.extend(EmberEvented) {
       `TRYING: [${strategy.connectionName}] -> ${strategy.url}`
     );
     strategy.tried = true;
-    return yield race([
+    return await race([
       this.waitForSuccessTask.perform(strategy, newSound),
       this.waitForFailureTask.perform(strategy, newSound),
     ]);
-  }
+  });
 
   /**
    * Register events on a current sound. Audio events triggered on that sound

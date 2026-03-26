@@ -72,12 +72,11 @@ export default class SoundPositionSliderModifier extends DidPanModifier {
     }
   }
 
-  @task
-  *afterLoadTask(callback = function () {}) {
-    yield waitForProperty(this, 'url', (v) => v);
-    yield waitForProperty(this, 'loadedSound', (v) => v);
+  afterLoadTask = task(async (callback = function () {}) => {
+    await waitForProperty(this, 'url', (v) => v);
+    await waitForProperty(this, 'loadedSound', (v) => v);
     callback(this.loadedSound);
-  }
+  });
 
   @action
   handleTap(e) {

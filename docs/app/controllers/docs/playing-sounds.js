@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
-import { timeout } from 'ember-concurrency';
-import { task } from 'ember-concurrency';
+import { task, timeout } from 'ember-concurrency';
+
 export default class DocsUsageController extends Controller {
   // BEGIN-SNIPPET application-controller.js
   @service stereo;
@@ -18,10 +18,9 @@ export default class DocsUsageController extends Controller {
   // END-SNIPPET
 
   // BEGIN_SNIPPET play-sound-decorator-promise.js
-  @task
-  *loadAudioUrlTask() {
-    yield timeout(200);
-    return yield [this.onDemandUrl];
-  }
+  loadAudioUrlTask = task(async () => {
+    await timeout(200);
+    return await [this.onDemandUrl];
+  });
   // END-SNIPPET
 }

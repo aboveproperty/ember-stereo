@@ -40,18 +40,17 @@ export default class SoundProxy extends Evented {
 
   @tracked value;
 
-  @task({ debug: true })
-  *waitForLoadTask() {
-    yield waitForProperty(this, 'identifier', (v) => !!v);
+  waitForLoadTask = task({ debug: true }, async () => {
+    await waitForProperty(this, 'identifier', (v) => !!v);
     debug('ember-stereo:sound-proxy')(`waiting for ${this.identifier} to load`);
 
     this.value = this.stereo.findLoadedSound(this.identifier);
 
-    yield waitForProperty(this, 'value', (v) => !!v);
+    await waitForProperty(this, 'value', (v) => !!v);
     debug('ember-stereo:sound-proxy')(
       `the wait is over for ${this.identifier} to load`
     );
-  }
+  });
 
   async afterLoad(callback) {
     try {
@@ -62,15 +61,14 @@ export default class SoundProxy extends Evented {
     }
   }
 
-  @task
-  *resolveUrlTask(identifier) {
-    this.identifier = yield this.stereo.resolveIdentifierTask.perform(
+  resolveUrlTask = task(async (identifier) => {
+    this.identifier = await this.stereo.resolveIdentifierTask.perform(
       identifier
     );
     debug('ember-stereo:sound-proxy')(
       `resolved identifier to ${this.identifier}`
     );
-  }
+  });
 
   get isPending() {
     return !this.value;
