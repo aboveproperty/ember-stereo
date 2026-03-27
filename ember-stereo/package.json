@@ -1,6 +1,6 @@
 {
   "name": "@aboveproperty/ember-stereo",
-  "version": "5.3.3",
+  "version": "5.3.4",
   "description": "The best way to play audio in your modern ember app",
   "repository": {
     "type": "git",
