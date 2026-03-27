@@ -1,10 +1,13 @@
 {
-  "name": "ember-stereo",
-  "version": "5.0.0-semantically-released",
+  "name": "@aboveproperty/ember-stereo",
+  "version": "5.3.3",
   "description": "The best way to play audio in your modern ember app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jkeen/ember-stereo.git"
+    "url": "https://github.com/aboveproperty/ember-stereo.git"
+  },
+  "publishConfig": {
+    "registry": "https://nexus.dev.abvprp.com/content/repositories/npm-internal/"
   },
   "license": "MIT",
   "author": "Jeff Keen <jeff@keen.me>",
@@ -92,9 +95,6 @@
     "@babel/core": "^7.17.10",
     "@ember/string": ">=4",
     "@ember/test-waiters": "^3.0.2 || >= 4.0.0"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org"
   },
   "ember": {
     "edition": "octane"
